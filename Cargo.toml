@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "dmdb",
+    "dmdb-sys",
+    "examples",
+]
