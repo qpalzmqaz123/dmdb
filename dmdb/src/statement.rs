@@ -63,12 +63,7 @@ impl<'conn> Statement<'conn> {
     }
 
     pub fn query<P: Params>(&mut self, params: P) -> Result<Rows<'conn, '_>> {
-        params.bind(self)?;
-
-        unsafe {
-            let rt = dmdb_sys::dpi_exec(self.hstmt);
-            error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.hstmt, msg => Error::Statement(msg));
-        }
+        self.execute(params)?;
 
         Ok(Rows::new(self)?)
     }
@@ -84,6 +79,17 @@ impl<'conn> Statement<'conn> {
         } else {
             Err(Error::QueryReturnedNoRows)
         }
+    }
+
+    pub fn execute<P: Params>(&mut self, params: P) -> Result<()> {
+        params.bind(self)?;
+
+        unsafe {
+            let rt = dmdb_sys::dpi_exec(self.hstmt);
+            error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.hstmt, msg => Error::Statement(msg));
+        }
+
+        Ok(())
     }
 }
 
