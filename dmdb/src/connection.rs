@@ -1,6 +1,6 @@
 use crate::{
     utils::{cstring::CString, error::error_check},
-    Error, Result, Statement,
+    Error, Params, Result, Row, Statement,
 };
 
 pub struct Connection {
@@ -48,6 +48,20 @@ impl Connection {
         }
 
         Ok(Statement::new(hstmt, self))
+    }
+
+    pub fn execute<P: Params>(&self, sql: &str, params: P) -> Result<()> {
+        let mut stmt = self.prepare(sql)?;
+        stmt.execute(params)
+    }
+
+    pub fn query_row<P, F, T>(&self, sql: &str, params: P, map: F) -> Result<T>
+    where
+        P: Params,
+        F: FnOnce(Row<'_, '_, '_>) -> Result<T>,
+    {
+        let mut stmt = self.prepare(sql)?;
+        stmt.query_row(params, map)
     }
 }
 
