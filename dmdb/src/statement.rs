@@ -1,6 +1,6 @@
 use std::mem::size_of_val;
 
-use crate::{utils::error::error_check, Connection, Error, Params, Result, Rows, Value};
+use crate::{utils::error::error_check, Connection, Error, Params, Result, Row, Rows, Value};
 
 #[derive(Debug)]
 pub(crate) struct ColumnInfo {
@@ -71,6 +71,19 @@ impl<'conn> Statement<'conn> {
         }
 
         Ok(Rows::new(self)?)
+    }
+
+    pub fn query_row<P, F, T>(&mut self, params: P, map: F) -> Result<T>
+    where
+        P: Params,
+        F: FnOnce(Row<'conn, '_, '_>) -> Result<T>,
+    {
+        let mut rows = self.query(params)?;
+        if let Some(row) = rows.next()? {
+            Ok(map(row)?)
+        } else {
+            Err(Error::QueryReturnedNoRows)
+        }
     }
 }
 

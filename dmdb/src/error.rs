@@ -16,4 +16,6 @@ pub enum Error {
     Internal(String),
     #[error("from value error: `{0}`")]
     FromValue(String),
+    #[error("query returned no rows")]
+    QueryReturnedNoRows,
 }
