@@ -77,23 +77,6 @@ pub trait FromValue: Sized {
     fn from_value(v: Value) -> Result<Self>;
 }
 
-macro_rules! impl_from_value_integer {
-    ($ty:ident) => {
-        impl FromValue for $ty {
-            fn from_value(v: Value) -> Result<Self> {
-                match v {
-                    Value::Integer(i) => Ok(i as $ty),
-                    _ => Err(Error::FromValue(format!(
-                        "Value type mismatch, cannot convert `{:?}` to {}",
-                        v,
-                        type_name::<Self>()
-                    ))),
-                }
-            }
-        }
-    };
-}
-
 impl FromValue for bool {
     fn from_value(v: Value) -> Result<Self> {
         match v {
@@ -105,6 +88,24 @@ impl FromValue for bool {
             ))),
         }
     }
+}
+
+macro_rules! impl_from_value_integer {
+    ($ty:ident) => {
+        impl FromValue for $ty {
+            fn from_value(v: Value) -> Result<Self> {
+                match v {
+                    Value::Integer(i) => Ok(i as $ty),
+                    Value::Float(f) => Ok(f as $ty),
+                    _ => Err(Error::FromValue(format!(
+                        "Value type mismatch, cannot convert `{:?}` to {}",
+                        v,
+                        type_name::<Self>()
+                    ))),
+                }
+            }
+        }
+    };
 }
 
 impl_from_value_integer!(i8);
@@ -121,6 +122,7 @@ impl_from_value_integer!(usize);
 impl FromValue for f32 {
     fn from_value(v: Value) -> Result<Self> {
         match v {
+            Value::Integer(i) => Ok(i as f32),
             Value::Float(f) => Ok(f as f32),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
@@ -134,6 +136,7 @@ impl FromValue for f32 {
 impl FromValue for f64 {
     fn from_value(v: Value) -> Result<Self> {
         match v {
+            Value::Integer(i) => Ok(i as f64),
             Value::Float(f) => Ok(f),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",

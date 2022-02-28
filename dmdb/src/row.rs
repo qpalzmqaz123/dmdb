@@ -34,11 +34,11 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 (info.length, dmdb_sys::DSQL_C_NCHAR, ValueType::Text)
             },
             #[rustfmt::skip]
-            dmdb_sys::DSQL_TINYINT | dmdb_sys::DSQL_SMALLINT | dmdb_sys::DSQL_INT | dmdb_sys::DSQL_BIGINT | dmdb_sys::DSQL_DEC => {
+            dmdb_sys::DSQL_TINYINT | dmdb_sys::DSQL_SMALLINT | dmdb_sys::DSQL_INT | dmdb_sys::DSQL_BIGINT => {
                 (size_of::<i64>(), dmdb_sys::DSQL_C_SBIGINT, ValueType::Integer)
             },
             #[rustfmt::skip]
-            dmdb_sys::DSQL_FLOAT | dmdb_sys::DSQL_DOUBLE => {
+            dmdb_sys::DSQL_FLOAT | dmdb_sys::DSQL_DOUBLE | dmdb_sys::DSQL_DEC => {
                 (size_of::<f64>(), dmdb_sys::DSQL_C_DOUBLE, ValueType::Float)
             },
             _ => {
