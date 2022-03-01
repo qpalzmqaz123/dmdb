@@ -13,6 +13,6 @@ pub use params::Params;
 pub use row::Row;
 pub use rows::Rows;
 pub use statement::Statement;
-pub use value::{FromValue, ToValue, Value, ValueType};
+pub use value::{DateTimeTuple, FromValue, ToValue, Value, ValueType};
 
 pub(crate) use statement::ColumnInfo;

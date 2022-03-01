@@ -2,6 +2,9 @@ use std::{any::type_name, ffi::CString};
 
 use crate::{Error, Result};
 
+/// (year, month, day, hour, minute, second, microsecond)
+pub type DateTimeTuple = (u16, u8, u8, u8, u8, u8, u32);
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum ValueType {
     Null,
@@ -93,6 +96,12 @@ impl ToValue for Vec<u8> {
 impl ToValue for Value {
     fn to_value(&self) -> Value {
         self.clone()
+    }
+}
+
+impl ToValue for DateTimeTuple {
+    fn to_value(&self) -> Value {
+        Value::DateTime(self.0, self.1, self.2, self.3, self.4, self.5, self.6)
     }
 }
 
@@ -195,6 +204,21 @@ impl FromValue for Vec<u8> {
                 Ok(s.into_bytes())
             }
             Value::Blob(v) => Ok(v),
+            _ => Err(Error::FromValue(format!(
+                "Value type mismatch, cannot convert `{:?}` to {}",
+                v,
+                type_name::<Self>()
+            ))),
+        }
+    }
+}
+
+impl FromValue for DateTimeTuple {
+    fn from_value(v: Value) -> Result<Self> {
+        match v {
+            Value::DateTime(year, month, day, hour, minute, second, nanosecond) => {
+                Ok((year, month, day, hour, minute, second, nanosecond))
+            }
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
                 v,

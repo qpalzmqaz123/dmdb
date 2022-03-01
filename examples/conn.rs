@@ -1,4 +1,4 @@
-use dmdb::{params, Connection, Value};
+use dmdb::{params, Connection};
 
 const INIT_SQL: &'static str = r#"
 DROP TABLE IF EXISTS dmdb_test;
@@ -53,7 +53,7 @@ struct Test {
     r: f64,
     s: String,
     t: String,
-    u: Value,
+    u: (u16, u8, u8, u8, u8, u8, u32),
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     #[rustfmt::skip]
     stmt.execute(params![
-        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t", Value::DateTime(2021, 3, 1, 15, 38, 0, 123456)
+        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32)
     ])?;
 
     // Get
@@ -102,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 r: row.get(19)?,
                 s: row.get(20)?,
                 t: row.get(21)?,
-                u: row.get_value(22)?,
+                u: row.get(22)?,
             })
         },
     )?;
@@ -132,7 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             r: 17.1,
             s: "s".into(),
             t: "t".into(),
-            u: Value::DateTime(2021, 3, 1, 15, 38, 0, 123456),
+            u: (2021, 3, 1, 15, 38, 0, 123456),
         }
     );
 
