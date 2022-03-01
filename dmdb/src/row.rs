@@ -75,6 +75,11 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.rows.stmt.hstmt, msg => Error::Statement(format!("Get column data `{}` failed: {}", index, msg)));
         }
 
+        // Value is null
+        if val_len <= 0 {
+            return Ok(Value::Null);
+        }
+
         // Parse column data to value
         let value = match value_type {
             ValueType::Null => Value::Null,

@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS dmdb_test;
 
 CREATE TABLE dmdb_test (
     id INTEGER PRIMARY KEY IDENTITY(1,1),
+    nil INTEGER,
     a INTEGER,
     b INT,
     c BIGINT,
@@ -31,6 +32,7 @@ CREATE TABLE dmdb_test (
 
 #[derive(Debug, PartialEq)]
 struct Test {
+    nil: Option<i32>,
     a: i32,
     b: i32,
     c: i64,
@@ -75,31 +77,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Get
     let tuple = conn.query_row(
-        "SELECT a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u FROM dmdb_test",
+        "SELECT nil, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u FROM dmdb_test",
         [],
         |row| {
             Ok(Test {
-                a: row.get(1)?,
-                b: row.get(2)?,
-                c: row.get(3)?,
-                d: row.get(4)?,
-                e: row.get(5)?,
-                f: row.get(6)?,
-                g: row.get(7)?,
-                h: row.get(8)?,
-                i: row.get(9)?,
-                j: row.get(10)?,
-                k: row.get(11)?,
-                l: row.get(12)?,
-                m: row.get(13)?,
-                n: row.get(14)?,
-                o: row.get(15)?,
-                p: row.get(16)?,
-                q: row.get(17)?,
-                r: row.get(18)?,
-                s: row.get(19)?,
-                t: row.get(20)?,
-                u: row.get_value(21)?,
+                nil: row.get(1)?,
+                a: row.get(2)?,
+                b: row.get(3)?,
+                c: row.get(4)?,
+                d: row.get(5)?,
+                e: row.get(6)?,
+                f: row.get(7)?,
+                g: row.get(8)?,
+                h: row.get(9)?,
+                i: row.get(10)?,
+                j: row.get(11)?,
+                k: row.get(12)?,
+                l: row.get(13)?,
+                m: row.get(14)?,
+                n: row.get(15)?,
+                o: row.get(16)?,
+                p: row.get(17)?,
+                q: row.get(18)?,
+                r: row.get(19)?,
+                s: row.get(20)?,
+                t: row.get(21)?,
+                u: row.get_value(22)?,
             })
         },
     )?;
@@ -108,6 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(
         tuple,
         Test {
+            nil: None,
             a: 1,
             b: 2,
             c: 3,

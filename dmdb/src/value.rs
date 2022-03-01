@@ -203,3 +203,13 @@ impl FromValue for Vec<u8> {
         }
     }
 }
+
+impl<T: FromValue> FromValue for Option<T> {
+    fn from_value(v: Value) -> Result<Self> {
+        if let Value::Null = v {
+            Ok(None)
+        } else {
+            Ok(Some(T::from_value(v)?))
+        }
+    }
+}
