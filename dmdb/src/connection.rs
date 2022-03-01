@@ -8,6 +8,8 @@ pub struct Connection {
     hcon: dmdb_sys::dhcon,
 }
 
+unsafe impl Send for Connection {}
+
 impl Connection {
     pub fn connect(server: &str, user: &str, pwd: &str) -> Result<Self> {
         let mut henv: dmdb_sys::dhenv = std::ptr::null_mut();
