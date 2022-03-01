@@ -1,4 +1,4 @@
-use dmdb::{params, Connection};
+use dmdb::{params, Connection, Value};
 
 const INIT_SQL: &'static str = r#"
 DROP TABLE IF EXISTS dmdb_test;
@@ -24,7 +24,8 @@ CREATE TABLE dmdb_test (
     q DOUBLE,
     r DOUBLE PRECISION(2),
     s TEXT,
-    t CLOB
+    t CLOB,
+    u DATETIME
 );
 "#;
 
@@ -50,6 +51,7 @@ struct Test {
     r: f64,
     s: String,
     t: String,
+    u: Value,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -64,16 +66,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert
     let mut stmt = conn.prepare(
-        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )?;
     #[rustfmt::skip]
     stmt.execute(params![
-        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t"
+        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t", Value::DateTime(2021, 3, 1, 15, 38, 0, 123456)
     ])?;
 
     // Get
     let tuple = conn.query_row(
-        "SELECT a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t FROM dmdb_test",
+        "SELECT a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u FROM dmdb_test",
         [],
         |row| {
             Ok(Test {
@@ -97,6 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 r: row.get(18)?,
                 s: row.get(19)?,
                 t: row.get(20)?,
+                u: row.get_value(21)?,
             })
         },
     )?;
@@ -125,6 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             r: 17.1,
             s: "s".into(),
             t: "t".into(),
+            u: Value::DateTime(2021, 3, 1, 15, 38, 0, 123456),
         }
     );
 

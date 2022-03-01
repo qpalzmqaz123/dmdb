@@ -13,6 +13,7 @@ pub(crate) struct ColumnInfo {
 pub struct Statement<'conn> {
     pub(crate) hstmt: dmdb_sys::dhstmt,
     pub(crate) values: Vec<Box<Value>>,
+    pub(crate) timestampes: Vec<Box<dmdb_sys::dpi_timestamp_t>>,
     _conn: &'conn Connection,
 }
 
@@ -21,6 +22,7 @@ impl<'conn> Statement<'conn> {
         Self {
             hstmt,
             values: vec![],
+            timestampes: vec![],
             _conn: conn,
         }
     }

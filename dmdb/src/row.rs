@@ -45,6 +45,11 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             dmdb_sys::DSQL_BLOB => {
                 (info.length, dmdb_sys::DSQL_C_BINARY, ValueType::Blob)
             },
+            dmdb_sys::DSQL_TIMESTAMP => (
+                size_of::<dmdb_sys::dpi_timestamp_t>(),
+                dmdb_sys::DSQL_C_TIMESTAMP,
+                ValueType::DateTime,
+            ),
             _ => {
                 return Err(Error::Internal(format!(
                     "Unsupport sql type: {}",
@@ -86,6 +91,21 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 Value::Text(cstr.to_owned())
             }
             ValueType::Blob => Value::Blob(buf[..val_len as usize].to_vec()),
+            ValueType::DateTime => {
+                let ptr = buf.as_ptr() as *const dmdb_sys::dpi_timestamp_t;
+                unsafe {
+                    let ts = &*ptr;
+                    Value::DateTime(
+                        ts.year as _,
+                        ts.month as _,
+                        ts.day as _,
+                        ts.hour as _,
+                        ts.minute as _,
+                        ts.second as _,
+                        ts.fraction.wrapping_div(1000),
+                    )
+                }
+            }
         };
 
         Ok(value)

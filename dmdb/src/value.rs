@@ -2,22 +2,25 @@ use std::{any::type_name, ffi::CString};
 
 use crate::{Error, Result};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ValueType {
     Null,
     Integer,
     Float,
     Text,
     Blob,
+    DateTime,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
     Integer(i64),
     Float(f64),
     Text(CString),
     Blob(Vec<u8>),
+    /// (year, month, day, hour, minute, second, microsecond)
+    DateTime(u16, u8, u8, u8, u8, u8, u32),
 }
 
 pub trait ToValue {
@@ -84,6 +87,12 @@ impl ToValue for &[u8] {
 impl ToValue for Vec<u8> {
     fn to_value(&self) -> Value {
         Value::Blob(self.clone())
+    }
+}
+
+impl ToValue for Value {
+    fn to_value(&self) -> Value {
+        self.clone()
     }
 }
 
