@@ -12,7 +12,8 @@ CREATE TABLE dmdb_test (
     e BYTE,
     f SMALLINT,
     g NUMBER(10, 0),
-    h NUMBER(10, 2)
+    h NUMBER(10, 2),
+    i BIT
 );
 "#;
 
@@ -28,26 +29,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert
     let mut stmt = conn.prepare(
-        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )?;
-    stmt.execute(params![1, 2, 3, 4, 5, 6, 7, 8.1])?;
+    stmt.execute(params![1, 2, 3, 4, 5, 6, 7, 8.1, true])?;
 
     // Get
-    let tuple = conn.query_row("SELECT a, b, c, d, e, f, g, h FROM dmdb_test", [], |row| {
-        Ok((
-            row.get::<i32>(1)?,
-            row.get::<i32>(2)?,
-            row.get::<i64>(3)?,
-            row.get::<i8>(4)?,
-            row.get::<i8>(5)?,
-            row.get::<i16>(6)?,
-            row.get::<i32>(7)?,
-            row.get::<f64>(8)?,
-        ))
-    })?;
+    let tuple = conn.query_row(
+        "SELECT a, b, c, d, e, f, g, h, i FROM dmdb_test",
+        [],
+        |row| {
+            Ok((
+                row.get::<i32>(1)?,
+                row.get::<i32>(2)?,
+                row.get::<i64>(3)?,
+                row.get::<i8>(4)?,
+                row.get::<i8>(5)?,
+                row.get::<i16>(6)?,
+                row.get::<i32>(7)?,
+                row.get::<f64>(8)?,
+                row.get::<bool>(9)?,
+            ))
+        },
+    )?;
 
     // Check
-    assert_eq!(tuple, (1, 2, 3, 4, 5, 6, 7, 8.1));
+    assert_eq!(tuple, (1, 2, 3, 4, 5, 6, 7, 8.1, true));
 
     Ok(())
 }
