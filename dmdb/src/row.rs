@@ -30,7 +30,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         // Get value buffer info
         let (buf_len, ctype, value_type) = match info.sql_type as u32 {
             #[rustfmt::skip]
-            dmdb_sys::DSQL_CHAR | dmdb_sys::DSQL_VARCHAR => {
+            dmdb_sys::DSQL_CHAR | dmdb_sys::DSQL_VARCHAR | dmdb_sys::DSQL_CLOB => {
                 (info.length + 1, dmdb_sys::DSQL_C_NCHAR, ValueType::Text)
             },
             #[rustfmt::skip]
@@ -40,6 +40,10 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             #[rustfmt::skip]
             dmdb_sys::DSQL_FLOAT | dmdb_sys::DSQL_DOUBLE | dmdb_sys::DSQL_DEC => {
                 (size_of::<f64>(), dmdb_sys::DSQL_C_DOUBLE, ValueType::Float)
+            },
+            #[rustfmt::skip]
+            dmdb_sys::DSQL_BLOB => {
+                (info.length, dmdb_sys::DSQL_C_BINARY, ValueType::Blob)
             },
             _ => {
                 return Err(Error::Internal(format!(
@@ -81,6 +85,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 let cstr = unsafe { CStr::from_ptr(buf.as_ptr() as *const _) };
                 Value::Text(cstr.to_owned())
             }
+            ValueType::Blob => Value::Blob(buf[..val_len as usize].to_vec()),
         };
 
         Ok(value)

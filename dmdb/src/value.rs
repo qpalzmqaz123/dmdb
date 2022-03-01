@@ -8,6 +8,7 @@ pub enum ValueType {
     Integer,
     Float,
     Text,
+    Blob,
 }
 
 #[derive(Debug)]
@@ -16,6 +17,7 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     Text(CString),
+    Blob(Vec<u8>),
 }
 
 pub trait ToValue {
@@ -70,6 +72,18 @@ impl ToValue for &str {
 impl ToValue for String {
     fn to_value(&self) -> Value {
         Value::Text(CString::new(self.clone()).unwrap_or(CString::default()))
+    }
+}
+
+impl ToValue for &[u8] {
+    fn to_value(&self) -> Value {
+        Value::Blob(self.to_vec())
+    }
+}
+
+impl ToValue for Vec<u8> {
+    fn to_value(&self) -> Value {
+        Value::Blob(self.clone())
     }
 }
 
@@ -153,6 +167,25 @@ impl FromValue for String {
             Value::Text(s) => Ok(s
                 .into_string()
                 .map_err(|e| Error::FromValue(format!("CString to String error: {}", e)))?),
+            _ => Err(Error::FromValue(format!(
+                "Value type mismatch, cannot convert `{:?}` to {}",
+                v,
+                type_name::<Self>()
+            ))),
+        }
+    }
+}
+
+impl FromValue for Vec<u8> {
+    fn from_value(v: Value) -> Result<Self> {
+        match v {
+            Value::Text(s) => {
+                let s = s
+                    .into_string()
+                    .map_err(|e| Error::FromValue(format!("CString to String error: {}", e)))?;
+                Ok(s.into_bytes())
+            }
+            Value::Blob(v) => Ok(v),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
                 v,

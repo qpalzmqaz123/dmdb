@@ -24,36 +24,42 @@ impl Params for &[&dyn ToValue] {
                 Value::Integer(_) => dmdb_sys::DSQL_C_SBIGINT,
                 Value::Float(_) => dmdb_sys::DSQL_C_DOUBLE,
                 Value::Text(_) => dmdb_sys::DSQL_C_NCHAR,
+                Value::Blob(_) => dmdb_sys::DSQL_C_BINARY,
             } as dmdb_sys::sdint2;
             let dtype = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(_) => dmdb_sys::DSQL_BIGINT,
                 Value::Float(_) => dmdb_sys::DSQL_DOUBLE,
                 Value::Text(_) => dmdb_sys::DSQL_CLOB,
+                Value::Blob(_) => dmdb_sys::DSQL_BLOB,
             } as dmdb_sys::sdint2;
             let precision = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(_) => 20,
                 Value::Float(_) => 20,
                 Value::Text(s) => s.as_bytes_with_nul().len(),
+                Value::Blob(v) => v.len(),
             };
             let scale = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(_) => 0,
                 Value::Float(_) => 3, // TODO
                 Value::Text(_) => 0,
+                Value::Blob(_) => 0,
             };
             let buf = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(i) => i as *const _ as *const u8,
                 Value::Float(f) => f as *const _ as *const u8,
                 Value::Text(s) => s.as_c_str().as_ptr() as *const u8,
+                Value::Blob(v) => v.as_ptr(),
             };
             let buf_len = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(i) => size_of_val(i),
                 Value::Float(f) => size_of_val(f),
                 Value::Text(s) => s.as_bytes_with_nul().len(),
+                Value::Blob(v) => v.len(),
             };
 
             unsafe {

@@ -15,9 +15,42 @@ CREATE TABLE dmdb_test (
     h NUMBER(10, 2),
     i BIT,
     j CHAR(2),
-    k VARCHAR(10)
+    k VARCHAR(10),
+    l CHARACTER(3),
+    m VARCHAR2(10),
+    n DECIMAL(10, 2),
+    o FLOAT(2),
+    p DOUBLE(2),
+    q DOUBLE,
+    r DOUBLE PRECISION(2),
+    s TEXT,
+    t CLOB
 );
 "#;
+
+#[derive(Debug, PartialEq)]
+struct Test {
+    a: i32,
+    b: i32,
+    c: i64,
+    d: i8,
+    e: i8,
+    f: i16,
+    g: i32,
+    h: f64,
+    i: bool,
+    j: String,
+    k: String,
+    l: String,
+    m: String,
+    n: f64,
+    o: f32,
+    p: f64,
+    q: f64,
+    r: f64,
+    s: String,
+    t: String,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::connect("127.0.0.1:5236", "SYSDBA", "SYSDBA")?;
@@ -31,35 +64,68 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert
     let mut stmt = conn.prepare(
-        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )?;
-    stmt.execute(params![1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk"])?;
+    #[rustfmt::skip]
+    stmt.execute(params![
+        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t"
+    ])?;
 
     // Get
     let tuple = conn.query_row(
-        "SELECT a, b, c, d, e, f, g, h, i, j, k FROM dmdb_test",
+        "SELECT a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t FROM dmdb_test",
         [],
         |row| {
-            Ok((
-                row.get::<i32>(1)?,
-                row.get::<i32>(2)?,
-                row.get::<i64>(3)?,
-                row.get::<i8>(4)?,
-                row.get::<i8>(5)?,
-                row.get::<i16>(6)?,
-                row.get::<i32>(7)?,
-                row.get::<f64>(8)?,
-                row.get::<bool>(9)?,
-                row.get::<String>(10)?,
-                row.get::<String>(11)?,
-            ))
+            Ok(Test {
+                a: row.get(1)?,
+                b: row.get(2)?,
+                c: row.get(3)?,
+                d: row.get(4)?,
+                e: row.get(5)?,
+                f: row.get(6)?,
+                g: row.get(7)?,
+                h: row.get(8)?,
+                i: row.get(9)?,
+                j: row.get(10)?,
+                k: row.get(11)?,
+                l: row.get(12)?,
+                m: row.get(13)?,
+                n: row.get(14)?,
+                o: row.get(15)?,
+                p: row.get(16)?,
+                q: row.get(17)?,
+                r: row.get(18)?,
+                s: row.get(19)?,
+                t: row.get(20)?,
+            })
         },
     )?;
 
     // Check
     assert_eq!(
         tuple,
-        (1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj".into(), "kkk".into())
+        Test {
+            a: 1,
+            b: 2,
+            c: 3,
+            d: 4,
+            e: 5,
+            f: 6,
+            g: 7,
+            h: 8.1,
+            i: true,
+            j: "jj".into(),
+            k: "kkk".into(),
+            l: "ll ".into(),
+            m: "m".into(),
+            n: 13.1,
+            o: 14.1,
+            p: 15.1,
+            q: 16.1,
+            r: 17.1,
+            s: "s".into(),
+            t: "t".into(),
+        }
     );
 
     Ok(())
