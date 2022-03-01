@@ -35,7 +35,7 @@ impl Params for &[&dyn ToValue] {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(_) => 20,
                 Value::Float(_) => 20,
-                Value::Text(s) => s.len(),
+                Value::Text(s) => s.as_bytes_with_nul().len(),
             };
             let scale = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
@@ -47,13 +47,13 @@ impl Params for &[&dyn ToValue] {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(i) => i as *const _ as *const u8,
                 Value::Float(f) => f as *const _ as *const u8,
-                Value::Text(s) => s.as_bytes() as *const _ as *const u8,
+                Value::Text(s) => s.as_c_str().as_ptr() as *const u8,
             };
             let buf_len = match value.as_ref() {
                 Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
                 Value::Integer(i) => size_of_val(i),
                 Value::Float(f) => size_of_val(f),
-                Value::Text(s) => s.len(),
+                Value::Text(s) => s.as_bytes_with_nul().len(),
             };
 
             unsafe {

@@ -13,7 +13,9 @@ CREATE TABLE dmdb_test (
     f SMALLINT,
     g NUMBER(10, 0),
     h NUMBER(10, 2),
-    i BIT
+    i BIT,
+    j CHAR(2),
+    k VARCHAR(10)
 );
 "#;
 
@@ -29,13 +31,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert
     let mut stmt = conn.prepare(
-        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )?;
-    stmt.execute(params![1, 2, 3, 4, 5, 6, 7, 8.1, true])?;
+    stmt.execute(params![1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk"])?;
 
     // Get
     let tuple = conn.query_row(
-        "SELECT a, b, c, d, e, f, g, h, i FROM dmdb_test",
+        "SELECT a, b, c, d, e, f, g, h, i, j, k FROM dmdb_test",
         [],
         |row| {
             Ok((
@@ -48,12 +50,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 row.get::<i32>(7)?,
                 row.get::<f64>(8)?,
                 row.get::<bool>(9)?,
+                row.get::<String>(10)?,
+                row.get::<String>(11)?,
             ))
         },
     )?;
 
     // Check
-    assert_eq!(tuple, (1, 2, 3, 4, 5, 6, 7, 8.1, true));
+    assert_eq!(
+        tuple,
+        (1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj".into(), "kkk".into())
+    );
 
     Ok(())
 }

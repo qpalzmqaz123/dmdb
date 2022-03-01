@@ -1,4 +1,4 @@
-use std::any::type_name;
+use std::{any::type_name, ffi::CString};
 
 use crate::{Error, Result};
 
@@ -15,7 +15,7 @@ pub enum Value {
     Null,
     Integer(i64),
     Float(f64),
-    Text(String),
+    Text(CString),
 }
 
 pub trait ToValue {
@@ -63,13 +63,13 @@ impl ToValue for f64 {
 
 impl ToValue for &str {
     fn to_value(&self) -> Value {
-        Value::Text(self.to_string())
+        Value::Text(CString::new(self.to_string()).unwrap_or(CString::default()))
     }
 }
 
 impl ToValue for String {
     fn to_value(&self) -> Value {
-        Value::Text(self.clone())
+        Value::Text(CString::new(self.clone()).unwrap_or(CString::default()))
     }
 }
 
@@ -150,7 +150,9 @@ impl FromValue for f64 {
 impl FromValue for String {
     fn from_value(v: Value) -> Result<Self> {
         match v {
-            Value::Text(s) => Ok(s),
+            Value::Text(s) => Ok(s
+                .into_string()
+                .map_err(|e| Error::FromValue(format!("CString to String error: {}", e)))?),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
                 v,

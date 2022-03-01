@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::{ffi::CStr, mem::size_of};
 
 use crate::{utils::error::error_check, Error, FromValue, Result, Rows, Value, ValueType};
 
@@ -31,7 +31,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         let (buf_len, ctype, value_type) = match info.sql_type as u32 {
             #[rustfmt::skip]
             dmdb_sys::DSQL_CHAR | dmdb_sys::DSQL_VARCHAR => {
-                (info.length, dmdb_sys::DSQL_C_NCHAR, ValueType::Text)
+                (info.length + 1, dmdb_sys::DSQL_C_NCHAR, ValueType::Text)
             },
             #[rustfmt::skip]
             dmdb_sys::DSQL_BIT | dmdb_sys::DSQL_TINYINT | dmdb_sys::DSQL_SMALLINT | dmdb_sys::DSQL_INT | dmdb_sys::DSQL_BIGINT => {
@@ -78,10 +78,8 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 Value::Float(n)
             }
             ValueType::Text => {
-                let a = std::str::from_utf8(&buf[0..val_len as usize])
-                    .map_err(|e| Error::Internal(format!("Parse result to string failed: {}", e)))?
-                    .to_string();
-                Value::Text(a)
+                let cstr = unsafe { CStr::from_ptr(buf.as_ptr() as *const _) };
+                Value::Text(cstr.to_owned())
             }
         };
 
