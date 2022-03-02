@@ -65,6 +65,14 @@ impl Connection {
         let mut stmt = self.prepare(sql)?;
         stmt.query_row(params, map)
     }
+
+    pub fn ident_current(&self, table: &str) -> Result<u64> {
+        let id = self.query_row(&format!("SELECT IDENT_CURRENT('{}')", table), [], |row| {
+            row.get(1)
+        })?;
+
+        Ok(id)
+    }
 }
 
 impl Drop for Connection {
