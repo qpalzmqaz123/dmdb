@@ -105,6 +105,34 @@ impl Params for &[&dyn ToValue] {
     }
 }
 
+impl Params for &[Value] {
+    #[inline]
+    fn bind(&self, stmt: &mut Statement) -> Result<()> {
+        let v = self.iter().map(|v| v as &dyn ToValue).collect::<Vec<_>>();
+        v.as_slice().bind(stmt)?;
+
+        Ok(())
+    }
+}
+
+impl Params for Vec<Value> {
+    #[inline]
+    fn bind(&self, stmt: &mut Statement) -> Result<()> {
+        self.as_slice().bind(stmt)?;
+
+        Ok(())
+    }
+}
+
+impl Params for &Vec<Value> {
+    #[inline]
+    fn bind(&self, stmt: &mut Statement) -> Result<()> {
+        self.as_slice().bind(stmt)?;
+
+        Ok(())
+    }
+}
+
 #[macro_export]
 macro_rules! params {
     () => {
