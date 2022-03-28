@@ -1,6 +1,8 @@
 use std::mem::size_of_val;
 
-use crate::{utils::error::error_check, Connection, Error, Params, Result, Row, Rows, Value};
+use crate::{
+    utils::error::error_check, Error, InternalConnection, Params, Result, Row, Rows, Value,
+};
 
 #[derive(Debug)]
 pub(crate) struct ColumnInfo {
@@ -14,11 +16,11 @@ pub struct Statement<'conn> {
     pub(crate) hstmt: dmdb_sys::dhstmt,
     pub(crate) values: Vec<Box<Value>>,
     pub(crate) timestampes: Vec<Box<dmdb_sys::dpi_timestamp_t>>,
-    _conn: &'conn Connection,
+    _conn: &'conn InternalConnection,
 }
 
 impl<'conn> Statement<'conn> {
-    pub(crate) fn new(hstmt: dmdb_sys::dhstmt, conn: &'conn Connection) -> Self {
+    pub(crate) fn new(hstmt: dmdb_sys::dhstmt, conn: &'conn InternalConnection) -> Self {
         Self {
             hstmt,
             values: vec![],

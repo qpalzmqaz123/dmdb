@@ -4,13 +4,85 @@ use crate::{
 };
 
 pub struct Connection {
+    server: String,
+    user: String,
+    password: String,
+    conn: Option<InternalConnection>,
+}
+
+macro_rules! require_conn {
+    ($self:expr) => {{
+        if $self.conn.is_none() {
+            let conn = InternalConnection::connect(&$self.server, &$self.user, &$self.password)?;
+            $self.conn = Some(conn);
+        }
+
+        $self
+            .conn
+            .as_ref()
+            .ok_or(Error::Internal("Connection is none".into()))?
+    }};
+}
+
+macro_rules! drop_conn_on_error {
+    ($self:expr, $res:expr) => {{
+        let res = $res;
+        if let Err(Error::Connection(_)) = res.as_ref() {
+            let conn_opt_ptr = &$self.conn as *const _ as *mut Option<InternalConnection>;
+            unsafe {
+                *conn_opt_ptr = None;
+            }
+        }
+
+        res
+    }};
+}
+
+impl Connection {
+    pub fn connect(server: &str, user: &str, pwd: &str) -> Result<Self> {
+        let instance = Self {
+            server: server.into(),
+            user: user.into(),
+            password: pwd.into(),
+            conn: None,
+        };
+
+        Ok(instance)
+    }
+
+    pub fn prepare(&mut self, sql: &str) -> Result<Statement<'_>> {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.prepare(sql))
+    }
+
+    pub fn execute<P: Params>(&mut self, sql: &str, params: P) -> Result<()> {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.execute(sql, params))
+    }
+
+    pub fn query_row<P, F, T>(&mut self, sql: &str, params: P, map: F) -> Result<T>
+    where
+        P: Params,
+        F: FnOnce(Row<'_, '_, '_>) -> Result<T>,
+    {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.query_row(sql, params, map))
+    }
+
+    pub fn ident_current(&mut self, table: &str) -> Result<u64> {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.ident_current(table))
+    }
+}
+
+pub struct InternalConnection {
     henv: dmdb_sys::dhenv,
     hcon: dmdb_sys::dhcon,
 }
 
-unsafe impl Send for Connection {}
+unsafe impl Send for InternalConnection {}
 
-impl Connection {
+impl InternalConnection {
     pub fn connect(server: &str, user: &str, pwd: &str) -> Result<Self> {
         let mut henv: dmdb_sys::dhenv = std::ptr::null_mut();
         let mut hcon: dmdb_sys::dhcon = std::ptr::null_mut();
@@ -75,7 +147,7 @@ impl Connection {
     }
 }
 
-impl Drop for Connection {
+impl Drop for InternalConnection {
     fn drop(&mut self) {
         unsafe {
             dmdb_sys::dpi_logout(self.hcon);
