@@ -182,9 +182,9 @@ impl FromValue for f64 {
 impl FromValue for String {
     fn from_value(v: Value) -> Result<Self> {
         match v {
-            Value::Text(s) => Ok(s
-                .into_string()
-                .map_err(|e| Error::FromValue(format!("CString to String error: {}", e)))?),
+            Value::Text(s) => Ok(s.clone().into_string().map_err(|e| {
+                Error::FromValue(format!("CString to String error: {}, s: {:?}", e, s))
+            })?),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
                 v,
@@ -197,12 +197,7 @@ impl FromValue for String {
 impl FromValue for Vec<u8> {
     fn from_value(v: Value) -> Result<Self> {
         match v {
-            Value::Text(s) => {
-                let s = s
-                    .into_string()
-                    .map_err(|e| Error::FromValue(format!("CString to String error: {}", e)))?;
-                Ok(s.into_bytes())
-            }
+            Value::Text(s) => Ok(s.into_bytes()),
             Value::Blob(v) => Ok(v),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
