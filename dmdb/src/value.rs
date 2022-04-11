@@ -183,7 +183,7 @@ impl FromValue for String {
     fn from_value(v: Value) -> Result<Self> {
         match v {
             Value::Text(s) => Ok(s.clone().into_string().map_err(|e| {
-                Error::FromValue(format!("CString to String error: {}, s: {:?}", e, s))
+                Error::FromValue(format!("CString to String error: {:?}, s: {:?}", e, s))
             })?),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
