@@ -58,7 +58,7 @@ struct Test {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let conn = Connection::connect("127.0.0.1:5236", "SYSDBA", "SYSDBA")?;
+    let mut conn = Connection::connect("127.0.0.1:5236", "SYSDBA", "SYSDBA")?;
 
     // Init
     for sql in INIT_SQL.split(";") {
@@ -75,6 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     stmt.execute(params![
         1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32)
     ])?;
+    drop(stmt);
     let id = conn.ident_current(&"dmdb_test".to_uppercase())?;
 
     // Get
