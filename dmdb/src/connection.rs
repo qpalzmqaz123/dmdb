@@ -98,6 +98,14 @@ impl InternalConnection {
             let rt = dmdb_sys::dpi_alloc_con(henv, &mut hcon);
             error_check!(rt, dmdb_sys::DSQL_HANDLE_ENV, henv, msg => Error::Connection(msg));
 
+            let rt = dmdb_sys::dpi_set_con_attr(
+                hcon,
+                dmdb_sys::DSQL_ATTR_LOCAL_CODE as _,
+                dmdb_sys::PG_UTF8 as _,
+                0,
+            );
+            error_check!(rt, dmdb_sys::DSQL_HANDLE_DBC, hcon, msg => Error::Connection(msg));
+
             let rt = dmdb_sys::dpi_login(
                 hcon,
                 CString::new(server).as_ptr_mut(),
@@ -116,6 +124,14 @@ impl InternalConnection {
         unsafe {
             let rt = dmdb_sys::dpi_alloc_stmt(self.hcon, &mut hstmt);
             error_check!(rt, dmdb_sys::DSQL_HANDLE_DBC, self.hcon, msg => Error::Connection(msg));
+
+            let rt = dmdb_sys::dpi_set_stmt_attr(
+                hstmt,
+                dmdb_sys::DSQL_ATTR_SQL_CHARSET as _,
+                dmdb_sys::PG_UTF8 as _,
+                0,
+            );
+            error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, hstmt, msg => Error::Prepare(msg));
 
             let rt = dmdb_sys::dpi_prepare(hstmt, CString::new(sql).as_ptr_mut());
             error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, hstmt, msg => Error::Prepare(msg));
