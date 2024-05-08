@@ -1,9 +1,9 @@
-use std::mem::{size_of_val, MaybeUninit};
+use std::mem::size_of_val;
 
 pub fn get_err_msg(handle_type: dmdb_sys::sdint2, handle: dmdb_sys::dhandle) -> String {
     let mut error_code: dmdb_sys::sdint4 = 0;
     let mut msg_len: dmdb_sys::sdint2 = 0;
-    let mut err_msg: [u8; 128] = unsafe { MaybeUninit::uninit().assume_init() };
+    let mut err_msg: [u8; 128] = [0; 128];
 
     unsafe {
         let rv = dmdb_sys::dpi_get_diag_rec(
