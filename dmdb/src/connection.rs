@@ -30,7 +30,7 @@ macro_rules! drop_conn_on_error {
         if let Err(Error::Connection(_)) = res.as_ref() {
             let conn_opt_ptr = &$self.conn as *const _ as *mut Option<InternalConnection>;
             unsafe {
-                *conn_opt_ptr = None;
+                (*conn_opt_ptr).take();
             }
         }
 

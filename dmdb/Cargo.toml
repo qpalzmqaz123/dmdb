@@ -9,3 +9,7 @@ edition = "2021"
 dmdb-sys = { path = "../dmdb-sys" }
 
 thiserror = "1"
+
+[features]
+default = []
+bundled = ["dmdb-sys/bundled"]
