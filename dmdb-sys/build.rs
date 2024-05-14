@@ -18,6 +18,7 @@ fn main() {
 
     // Generate bindings
     let bindings = bindgen::Builder::default()
+        .clang_arg("-DDM64")
         .header(format!("{base_dir}/include/DPI.h"))
         .header(format!("{base_dir}/include/DPIext.h"))
         .header(format!("{base_dir}/include/DPItypes.h"))
