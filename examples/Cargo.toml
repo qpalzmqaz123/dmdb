@@ -12,3 +12,7 @@ dmdb = { path = "../dmdb", features = ["bundled"] }
 [[example]]
 name = "conn"
 path = "conn.rs"
+
+[[example]]
+name = "transaction"
+path = "transaction.rs"

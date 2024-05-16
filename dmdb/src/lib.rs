@@ -4,6 +4,7 @@ mod params;
 mod row;
 mod rows;
 mod statement;
+mod transaction;
 mod utils;
 mod value;
 
@@ -13,6 +14,7 @@ pub use params::Params;
 pub use row::Row;
 pub use rows::Rows;
 pub use statement::Statement;
+pub use transaction::Transaction;
 pub use value::{DateTimeTuple, FromValue, ToValue, Value, ValueType};
 
 pub(crate) use connection::InternalConnection;

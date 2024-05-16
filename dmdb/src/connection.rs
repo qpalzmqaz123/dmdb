@@ -1,6 +1,6 @@
 use crate::{
     utils::{cstring::CString, error::error_check},
-    Error, Params, Result, Row, Statement,
+    Error, Params, Result, Row, Statement, Transaction,
 };
 
 pub struct Connection {
@@ -73,6 +73,11 @@ impl Connection {
         let conn = require_conn!(self);
         drop_conn_on_error!(self, conn.ident_current(table))
     }
+
+    pub fn transaction(&mut self) -> Result<Transaction<'_>> {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.transaction())
+    }
 }
 
 pub struct InternalConnection {
@@ -102,6 +107,14 @@ impl InternalConnection {
                 hcon,
                 dmdb_sys::DSQL_ATTR_LOCAL_CODE as _,
                 dmdb_sys::PG_UTF8 as _,
+                0,
+            );
+            error_check!(rt, dmdb_sys::DSQL_HANDLE_DBC, hcon, msg => Error::Connection(msg));
+
+            let rt = dmdb_sys::dpi_set_con_attr(
+                hcon,
+                dmdb_sys::DSQL_ATTR_AUTOCOMMIT as _,
+                dmdb_sys::DSQL_AUTOCOMMIT_ON as _,
                 0,
             );
             error_check!(rt, dmdb_sys::DSQL_HANDLE_DBC, hcon, msg => Error::Connection(msg));
@@ -160,6 +173,30 @@ impl InternalConnection {
         })?;
 
         Ok(id)
+    }
+
+    pub fn transaction(&self) -> Result<Transaction<'_>> {
+        Transaction::new(self)
+    }
+
+    pub fn set_autocommit(&self, mode: bool) -> Result<()> {
+        let mode = if mode {
+            dmdb_sys::DSQL_AUTOCOMMIT_ON
+        } else {
+            dmdb_sys::DSQL_AUTOCOMMIT_OFF
+        };
+
+        unsafe {
+            let rt = dmdb_sys::dpi_set_con_attr(
+                self.hcon,
+                dmdb_sys::DSQL_ATTR_AUTOCOMMIT as _,
+                mode as _,
+                0,
+            );
+            error_check!(rt, dmdb_sys::DSQL_HANDLE_DBC, self.hcon, msg => Error::Connection(msg));
+        }
+
+        Ok(())
     }
 }
 
