@@ -31,4 +31,8 @@ impl<'conn, 'stmt> Rows<'conn, 'stmt> {
 
         Ok(Some(Row::new(self)))
     }
+
+    pub fn columns(&self) -> &[ColumnInfo] {
+        &self.col_infos
+    }
 }

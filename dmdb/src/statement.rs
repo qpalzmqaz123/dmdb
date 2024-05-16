@@ -5,10 +5,19 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub(crate) struct ColumnInfo {
-    #[allow(unused)]
-    pub name: String,
-    pub sql_type: dmdb_sys::sdint2,
+pub struct ColumnInfo {
+    name: String,
+    sql_type: dmdb_sys::sdint2,
+}
+
+impl ColumnInfo {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn sql_type(&self) -> dmdb_sys::sdint2 {
+        self.sql_type
+    }
 }
 
 pub struct Statement<'conn> {

@@ -91,6 +91,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "SELECT id, nil, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v FROM dmdb_test",
         [],
         |row| {
+            println!("cols: {:?}", row.columns());
+
             Ok(Test {
                 id: row.get(1)?,
                 nil: row.get(2)?,

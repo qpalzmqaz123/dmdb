@@ -1,6 +1,9 @@
 use std::vec;
 
-use crate::{utils::error::error_check, Error, FromValue, Result, Rows, Value, ValueType};
+use crate::{
+    statement::ColumnInfo, utils::error::error_check, Error, FromValue, Result, Rows, Value,
+    ValueType,
+};
 
 pub struct Row<'conn, 'stmt, 'row> {
     rows: &'row Rows<'conn, 'stmt>,
@@ -9,6 +12,10 @@ pub struct Row<'conn, 'stmt, 'row> {
 impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
     pub(crate) fn new(rows: &'row Rows<'conn, 'stmt>) -> Self {
         Self { rows }
+    }
+
+    pub fn columns(&self) -> &[ColumnInfo] {
+        self.rows.columns()
     }
 
     pub fn get<T: FromValue>(&self, index: usize) -> Result<T> {
@@ -28,7 +35,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             .ok_or(Error::Index(format!("Index `{}` out of range", index)))?;
 
         // Get value buffer info
-        let (ctype, value_type) = match info.sql_type as u32 {
+        let (ctype, value_type) = match info.sql_type() as u32 {
             #[rustfmt::skip]
             dmdb_sys::DSQL_CHAR | dmdb_sys::DSQL_VARCHAR | dmdb_sys::DSQL_CLOB => {
                 (dmdb_sys::DSQL_C_BINARY, ValueType::Text)
@@ -49,7 +56,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             _ => {
                 return Err(Error::Internal(format!(
                     "Unsupport sql type: {}",
-                    info.sql_type
+                    info.sql_type()
                 )))
             }
         };
