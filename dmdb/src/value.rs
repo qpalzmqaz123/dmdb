@@ -1,4 +1,4 @@
-use std::{any::type_name, ffi::CString};
+use std::any::type_name;
 
 use crate::{Error, Result};
 
@@ -20,7 +20,7 @@ pub enum Value {
     Null,
     Integer(i64),
     Float(f64),
-    Text(CString),
+    Text(String),
     Blob(Vec<u8>),
     /// (year, month, day, hour, minute, second, microsecond)
     DateTime(u16, u8, u8, u8, u8, u8, u32),
@@ -71,13 +71,13 @@ impl ToValue for f64 {
 
 impl ToValue for &str {
     fn to_value(&self) -> Value {
-        Value::Text(CString::new(self.to_string()).unwrap_or(CString::default()))
+        Value::Text(self.to_string())
     }
 }
 
 impl ToValue for String {
     fn to_value(&self) -> Value {
-        Value::Text(CString::new(self.clone()).unwrap_or(CString::default()))
+        Value::Text(self.clone())
     }
 }
 
@@ -182,9 +182,7 @@ impl FromValue for f64 {
 impl FromValue for String {
     fn from_value(v: Value) -> Result<Self> {
         match v {
-            Value::Text(s) => Ok(s.clone().into_string().map_err(|e| {
-                Error::FromValue(format!("CString to String error: {:?}, s: {:?}", e, s))
-            })?),
+            Value::Text(s) => Ok(s),
             _ => Err(Error::FromValue(format!(
                 "Value type mismatch, cannot convert `{:?}` to {}",
                 v,

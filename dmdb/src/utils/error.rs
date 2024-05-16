@@ -26,7 +26,9 @@ pub fn get_err_msg(handle_type: dmdb_sys::sdint2, handle: dmdb_sys::dhandle) -> 
 
 macro_rules! error_check {
     ($rt:expr, $hdl_ty:expr, $hdl:expr, $msg:ident => $err:expr) => {
-        if $rt != 0 {
+        if $rt != dmdb_sys::DSQL_SUCCESS as dmdb_sys::DPIRETURN
+            && $rt != dmdb_sys::DSQL_SUCCESS_WITH_INFO as dmdb_sys::DPIRETURN
+        {
             let $msg = $crate::utils::error::get_err_msg($hdl_ty as dmdb_sys::sdint2, $hdl);
             return Err($err);
         }

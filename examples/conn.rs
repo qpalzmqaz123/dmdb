@@ -26,7 +26,8 @@ CREATE TABLE dmdb_test (
     r DOUBLE PRECISION(2),
     s TEXT,
     t CLOB,
-    u DATETIME
+    u DATETIME,
+    v BLOB
 );
 "#;
 
@@ -55,10 +56,17 @@ struct Test {
     s: String,
     t: String,
     u: (u16, u8, u8, u8, u8, u8, u32),
+    v: Vec<u8>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = Connection::connect("127.0.0.1:5236", "SYSDBA", "SYSDBA")?;
+    let mut conn = Connection::connect("127.0.0.1:5236", "SYSDBA", "SYSDBA001")?;
+
+    let text_data = (0..1000)
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    let blob_data: Vec<u8> = (0..8000).map(|v| v as u8).collect();
 
     // Init
     for sql in INIT_SQL.split(";") {
@@ -69,18 +77,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert
     let mut stmt = conn.prepare(
-        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO dmdb_test (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )?;
     #[rustfmt::skip]
     stmt.execute(params![
-        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, "s", "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32)
+        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, text_data, "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32), blob_data,
     ])?;
     drop(stmt);
     let id = conn.ident_current(&"dmdb_test".to_uppercase())?;
 
     // Get
     let tuple = conn.query_row(
-        "SELECT id, nil, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u FROM dmdb_test",
+        "SELECT id, nil, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v FROM dmdb_test",
         [],
         |row| {
             Ok(Test {
@@ -107,6 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 s: row.get(21)?,
                 t: row.get(22)?,
                 u: row.get(23)?,
+                v: row.get(24)?,
             })
         },
     )?;
@@ -135,9 +144,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             p: 15.1,
             q: 16.1,
             r: 17.1,
-            s: "s".into(),
+            s: text_data,
             t: "t".into(),
             u: (2021, 3, 1, 15, 38, 0, 123456),
+            v: blob_data
         }
     );
 

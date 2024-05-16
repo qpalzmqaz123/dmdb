@@ -8,14 +8,17 @@ use crate::{
 pub(crate) struct ColumnInfo {
     #[allow(unused)]
     pub name: String,
-    pub length: usize,
     pub sql_type: dmdb_sys::sdint2,
 }
 
 pub struct Statement<'conn> {
     pub(crate) hstmt: dmdb_sys::dhstmt,
+    /// Temorary save the values for each bind parameter
     pub(crate) values: Vec<Box<Value>>,
+    /// Temorary save the timestamp values for each bind parameter
     pub(crate) timestampes: Vec<Box<dmdb_sys::dpi_timestamp_t>>,
+    /// Temorary save the buffer size for each value
+    pub(crate) bind_ind_vec: Vec<Box<dmdb_sys::slength>>,
     _conn: &'conn InternalConnection,
 }
 
@@ -25,6 +28,7 @@ impl<'conn> Statement<'conn> {
             hstmt,
             values: vec![],
             timestampes: vec![],
+            bind_ind_vec: vec![],
             _conn: conn,
         }
     }
@@ -33,7 +37,6 @@ impl<'conn> Statement<'conn> {
         let mut name: [u8; 64] = [0; 64];
         let mut name_len: dmdb_sys::sdint2 = 0;
         let mut sql_type: dmdb_sys::sdint2 = 0;
-        let mut length: dmdb_sys::ulength = 0;
         unsafe {
             let rt = dmdb_sys::dpi_desc_column(
                 self.hstmt,
@@ -42,7 +45,7 @@ impl<'conn> Statement<'conn> {
                 size_of_val(&name) as dmdb_sys::sdint2,
                 &mut name_len,
                 &mut sql_type,
-                &mut length,
+                0 as *mut dmdb_sys::ulength,
                 0 as *mut dmdb_sys::sdint2,
                 0 as *mut dmdb_sys::sdint2,
             );
@@ -51,7 +54,6 @@ impl<'conn> Statement<'conn> {
 
         Ok(ColumnInfo {
             name: String::from_utf8_lossy(&name[..name_len as usize]).to_string(),
-            length: length as usize,
             sql_type,
         })
     }

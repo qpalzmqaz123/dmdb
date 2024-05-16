@@ -1,4 +1,4 @@
-use std::{ffi::CStr, mem::size_of};
+use std::vec;
 
 use crate::{utils::error::error_check, Error, FromValue, Result, Rows, Value, ValueType};
 
@@ -28,28 +28,24 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             .ok_or(Error::Index(format!("Index `{}` out of range", index)))?;
 
         // Get value buffer info
-        let (buf_len, ctype, value_type) = match info.sql_type as u32 {
+        let (ctype, value_type) = match info.sql_type as u32 {
             #[rustfmt::skip]
             dmdb_sys::DSQL_CHAR | dmdb_sys::DSQL_VARCHAR | dmdb_sys::DSQL_CLOB => {
-                (info.length + 1, dmdb_sys::DSQL_C_NCHAR, ValueType::Text)
+                (dmdb_sys::DSQL_C_BINARY, ValueType::Text)
             },
             #[rustfmt::skip]
             dmdb_sys::DSQL_BIT | dmdb_sys::DSQL_TINYINT | dmdb_sys::DSQL_SMALLINT | dmdb_sys::DSQL_INT | dmdb_sys::DSQL_BIGINT => {
-                (size_of::<i64>(), dmdb_sys::DSQL_C_SBIGINT, ValueType::Integer)
+                (dmdb_sys::DSQL_C_SBIGINT, ValueType::Integer)
             },
             #[rustfmt::skip]
             dmdb_sys::DSQL_FLOAT | dmdb_sys::DSQL_DOUBLE | dmdb_sys::DSQL_DEC => {
-                (size_of::<f64>(), dmdb_sys::DSQL_C_DOUBLE, ValueType::Float)
+                (dmdb_sys::DSQL_C_DOUBLE, ValueType::Float)
             },
             #[rustfmt::skip]
             dmdb_sys::DSQL_BLOB => {
-                (info.length, dmdb_sys::DSQL_C_BINARY, ValueType::Blob)
+                (dmdb_sys::DSQL_C_BINARY, ValueType::Blob)
             },
-            dmdb_sys::DSQL_TIMESTAMP => (
-                size_of::<dmdb_sys::dpi_timestamp_t>(),
-                dmdb_sys::DSQL_C_TIMESTAMP,
-                ValueType::DateTime,
-            ),
+            dmdb_sys::DSQL_TIMESTAMP => (dmdb_sys::DSQL_C_TIMESTAMP, ValueType::DateTime),
             _ => {
                 return Err(Error::Internal(format!(
                     "Unsupport sql type: {}",
@@ -58,27 +54,11 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             }
         };
 
-        // Alloc buffer
-        let mut buf = vec![0u8; buf_len];
-        let mut val_len: dmdb_sys::slength = 0;
-
-        // Get column data
-        unsafe {
-            let rt = dmdb_sys::dpi_get_data(
-                self.rows.stmt.hstmt,
-                index as dmdb_sys::udint2,
-                ctype as dmdb_sys::sdint2,
-                buf.as_mut_ptr() as dmdb_sys::dpointer,
-                buf_len as dmdb_sys::slength,
-                &mut val_len,
-            );
-            error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.rows.stmt.hstmt, msg => Error::Statement(format!("Get column data `{}` failed: {}", index, msg)));
-        }
-
-        // Value is null
-        if val_len <= 0 {
-            return Ok(Value::Null);
-        }
+        // Get raw data
+        let Some(buf) = self.recevie_data(index as dmdb_sys::udint2, ctype as dmdb_sys::sdint2)? else {
+            // Value is null
+            return Ok(Value::Null)
+        };
 
         // Parse column data to value
         let value = match value_type {
@@ -92,10 +72,11 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 Value::Float(n)
             }
             ValueType::Text => {
-                let cstr = unsafe { CStr::from_ptr(buf.as_ptr() as *const _) };
-                Value::Text(cstr.to_owned())
+                let string = String::from_utf8(buf)
+                    .map_err(|e| Error::FromValue(format!("Parse text value failed: {e}")))?;
+                Value::Text(string)
             }
-            ValueType::Blob => Value::Blob(buf[..val_len as usize].to_vec()),
+            ValueType::Blob => Value::Blob(buf),
             ValueType::DateTime => {
                 let ptr = buf.as_ptr() as *const dmdb_sys::dpi_timestamp_t;
                 unsafe {
@@ -114,5 +95,54 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         };
 
         Ok(value)
+    }
+
+    fn recevie_data(
+        &self,
+        index: dmdb_sys::udint2,
+        ctype: dmdb_sys::sdint2,
+    ) -> Result<Option<Vec<u8>>> {
+        const BUF_LEN: usize = 4096;
+
+        let mut buf = vec![0u8; BUF_LEN];
+        let mut out_buf = vec![];
+
+        loop {
+            let mut val_len: dmdb_sys::slength = 0;
+            let rt = unsafe {
+                dmdb_sys::dpi_get_data(
+                    self.rows.stmt.hstmt,
+                    index,
+                    ctype,
+                    buf.as_mut_ptr() as dmdb_sys::dpointer,
+                    BUF_LEN as dmdb_sys::slength,
+                    &mut val_len,
+                )
+            };
+
+            // Value is null
+            if val_len < 0 {
+                return Ok(None);
+            }
+
+            let tmp_data_size = std::cmp::min(val_len as usize, BUF_LEN);
+            let tmp_data = buf.get(0..tmp_data_size).ok_or(Error::Statement(format!(
+                "Get column data `{}` out of range",
+                index
+            )))?;
+
+            if rt == dmdb_sys::DSQL_SUCCESS as dmdb_sys::DPIRETURN
+                || rt == dmdb_sys::DSQL_SUCCESS_WITH_INFO as dmdb_sys::DPIRETURN
+            {
+                out_buf.extend(tmp_data);
+            } else if rt == dmdb_sys::DSQL_NO_DATA as dmdb_sys::DPIRETURN {
+                out_buf.extend(tmp_data);
+                break;
+            } else {
+                error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.rows.stmt.hstmt, msg => Error::Statement(format!("Get column data `{}` failed: {}", index, msg)));
+            }
+        }
+
+        Ok(Some(out_buf))
     }
 }
