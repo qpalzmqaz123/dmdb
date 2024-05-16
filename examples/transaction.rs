@@ -23,6 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let tx = conn.transaction()?;
         tx.execute("INSERT INTO dmdb_test (a) VALUES (?)", params![1])?;
+        assert_eq!(tx.last_insert_id()?, 1);
         tx.commit()?;
     }
 
@@ -30,6 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let tx = conn.transaction()?;
         tx.execute("INSERT INTO dmdb_test (a) VALUES (?)", params![2])?;
+        assert_eq!(tx.last_insert_id()?, 2);
         tx.rollback()?;
     }
 
@@ -37,6 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let tx = conn.transaction()?;
         tx.execute("INSERT INTO dmdb_test (a) VALUES (?)", params![3])?;
+        assert_eq!(tx.last_insert_id()?, 3);
     }
 
     // Insert 4 ok
@@ -44,6 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let tx = conn.transaction()?;
         let mut stmt = tx.prepare("INSERT INTO dmdb_test (a) VALUES (?)")?;
         stmt.execute(params![4])?;
+        assert_eq!(tx.last_insert_id()?, 4);
         drop(stmt);
         tx.commit()?;
     }
@@ -53,6 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let tx = conn.transaction()?;
         let mut stmt = tx.prepare("INSERT INTO dmdb_test (a) VALUES (?)")?;
         stmt.execute(params![5])?;
+        assert_eq!(tx.last_insert_id()?, 5);
         drop(stmt);
     }
 

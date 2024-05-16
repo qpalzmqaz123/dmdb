@@ -74,6 +74,11 @@ impl Connection {
         drop_conn_on_error!(self, conn.ident_current(table))
     }
 
+    pub fn last_insert_id(&mut self) -> Result<u64> {
+        let conn = require_conn!(self);
+        drop_conn_on_error!(self, conn.last_insert_id())
+    }
+
     pub fn transaction(&mut self) -> Result<Transaction<'_>> {
         let conn = require_conn!(self);
         drop_conn_on_error!(self, conn.transaction())
@@ -173,6 +178,14 @@ impl InternalConnection {
         })?;
 
         Ok(id)
+    }
+
+    pub fn last_insert_id(&self) -> Result<u64> {
+        let id = self.query_row(&format!("SELECT @@IDENTITY"), [], |row| {
+            row.get::<Option<u64>>(1)
+        })?;
+
+        Ok(id.unwrap_or(0))
     }
 
     pub fn transaction(&self) -> Result<Transaction<'_>> {

@@ -85,6 +85,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ])?;
     drop(stmt);
     let id = conn.ident_current(&"dmdb_test".to_uppercase())?;
+    assert_eq!(id, 1);
+    let id = conn.last_insert_id()?;
+    assert_eq!(id, 1);
 
     // Get
     let tuple = conn.query_row(

@@ -32,6 +32,10 @@ impl<'conn> Transaction<'conn> {
         self.conn.ident_current(table)
     }
 
+    pub fn last_insert_id(&self) -> Result<u64> {
+        self.conn.last_insert_id()
+    }
+
     pub fn commit(mut self) -> Result<()> {
         self.commit_ref()
     }
