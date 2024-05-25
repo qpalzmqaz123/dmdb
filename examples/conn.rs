@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     #[rustfmt::skip]
     stmt.execute(params![
-        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, text_data, "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32), blob_data,
+        1, 2, 3, 4, 5, 6, 7, 8.1, true, "jj", "kkk中文", "ll", "m", 13.1, 14.1, 15.1, 16.1, 17.1, text_data, "t", (2021u16, 3u8, 1u8, 15u8, 38u8, 0u8, 123456u32), blob_data,
     ])?;
     drop(stmt);
     let id = conn.ident_current(&"dmdb_test".to_uppercase())?;
@@ -141,7 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             h: 8.1,
             i: true,
             j: "jj".into(),
-            k: "kkk".into(),
+            k: "kkk中文".into(),
             l: "ll ".into(),
             m: "m".into(),
             n: 13.1,
