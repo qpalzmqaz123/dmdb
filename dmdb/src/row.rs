@@ -7,11 +7,22 @@ use crate::{
 
 pub struct Row<'conn, 'stmt, 'row> {
     rows: &'row Rows<'conn, 'stmt>,
+    cache: Vec<Value>,
 }
 
 impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
-    pub(crate) fn new(rows: &'row Rows<'conn, 'stmt>) -> Self {
-        Self { rows }
+    pub(crate) fn new(rows: &'row Rows<'conn, 'stmt>) -> Result<Self> {
+        // Genrate value cache
+        // XXX: Due to issues with the Dameng Database, the second call to dpi_get_data for the same column retrieves empty data and does not report an error.
+        // Therefore, it is necessary to use caching to ensure that dpi_get_data is only called once.
+        let cache = rows
+            .col_infos
+            .iter()
+            .enumerate()
+            .map(|(index, info)| Self::get_value_by_column_info(rows, index, info))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Self { rows, cache })
     }
 
     pub fn columns(&self) -> &[ColumnInfo] {
@@ -27,13 +38,21 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             return Err(Error::Index("Index must not 0".into()));
         }
 
-        // Get info
-        let info = self
-            .rows
-            .col_infos
+        // Get value from cache
+        let value = self
+            .cache
             .get(index - 1)
-            .ok_or(Error::Index(format!("Index `{}` out of range", index)))?;
+            .cloned()
+            .ok_or_else(|| Error::Index(format!("Index `{}` out of range", index)))?;
 
+        Ok(value)
+    }
+
+    fn get_value_by_column_info(
+        rows: &'row Rows<'conn, 'stmt>,
+        index: usize,
+        info: &ColumnInfo,
+    ) -> Result<Value> {
         // Get value buffer info
         let (ctype, value_type) = match info.sql_type() as u32 {
             #[rustfmt::skip]
@@ -62,7 +81,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         };
 
         // Get raw data
-        let Some(buf) = self.recevie_data(index as dmdb_sys::udint2, ctype as dmdb_sys::sdint2)? else {
+        let Some(buf) = Self::recevie_data(rows, (index + 1) as dmdb_sys::udint2, ctype as dmdb_sys::sdint2)? else {
             // Value is null
             return Ok(Value::Null)
         };
@@ -105,7 +124,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
     }
 
     fn recevie_data(
-        &self,
+        rows: &'row Rows<'conn, 'stmt>,
         index: dmdb_sys::udint2,
         ctype: dmdb_sys::sdint2,
     ) -> Result<Option<Vec<u8>>> {
@@ -118,7 +137,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
             let mut val_len: dmdb_sys::slength = 0;
             let rt = unsafe {
                 dmdb_sys::dpi_get_data(
-                    self.rows.stmt.hstmt,
+                    rows.stmt.hstmt,
                     index,
                     ctype,
                     buf.as_mut_ptr() as dmdb_sys::dpointer,
@@ -146,7 +165,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 out_buf.extend(tmp_data);
                 break;
             } else {
-                error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.rows.stmt.hstmt, msg => Error::Statement(format!("Get column data `{}` failed: {}", index, msg)));
+                error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, rows.stmt.hstmt, msg => Error::Statement(format!("Get column data `{}` failed: {}", index, msg)));
             }
         }
 

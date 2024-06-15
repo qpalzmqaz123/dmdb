@@ -29,7 +29,7 @@ impl<'conn, 'stmt> Rows<'conn, 'stmt> {
             error_check!(rt, dmdb_sys::DSQL_HANDLE_STMT, self.stmt.hstmt, msg => Error::Statement(format!("Next error: {}", msg)));
         }
 
-        Ok(Some(Row::new(self)))
+        Ok(Some(Row::new(self)?))
     }
 
     pub fn columns(&self) -> &[ColumnInfo] {
