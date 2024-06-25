@@ -105,6 +105,15 @@ impl ToValue for DateTimeTuple {
     }
 }
 
+impl<T: ToValue> ToValue for Option<T> {
+    fn to_value(&self) -> Value {
+        match self {
+            Some(v) => v.to_value(),
+            None => Value::Null,
+        }
+    }
+}
+
 pub trait FromValue: Sized {
     fn from_value(v: Value) -> Result<Self>;
 }

@@ -24,7 +24,7 @@ impl Params for &[&dyn ToValue] {
             let value = Box::new(param.to_value());
             let iparam = index as dmdb_sys::udint2 + 1;
             let ctype = match value.as_ref() {
-                Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
+                Value::Null => dmdb_sys::DSQL_C_BINARY,
                 Value::Integer(_) => dmdb_sys::DSQL_C_SBIGINT,
                 Value::Float(_) => dmdb_sys::DSQL_C_DOUBLE,
                 Value::Text(_) => dmdb_sys::DSQL_C_NCHAR,
@@ -32,7 +32,7 @@ impl Params for &[&dyn ToValue] {
                 Value::DateTime(..) => dmdb_sys::DSQL_C_TIMESTAMP,
             } as dmdb_sys::sdint2;
             let dtype = match value.as_ref() {
-                Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
+                Value::Null => dmdb_sys::DSQL_BLOB,
                 Value::Integer(_) => dmdb_sys::DSQL_BIGINT,
                 Value::Float(_) => dmdb_sys::DSQL_DOUBLE,
                 Value::Text(_) => dmdb_sys::DSQL_CLOB,
@@ -40,7 +40,7 @@ impl Params for &[&dyn ToValue] {
                 Value::DateTime(..) => dmdb_sys::DSQL_TIMESTAMP,
             } as dmdb_sys::sdint2;
             let buf = match value.as_ref() {
-                Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
+                Value::Null => std::ptr::null(),
                 Value::Integer(i) => i as *const _ as *const u8,
                 Value::Float(f) => f as *const _ as *const u8,
                 Value::Text(s) => s.as_ptr(),
@@ -64,7 +64,7 @@ impl Params for &[&dyn ToValue] {
                 }
             };
             let buf_len = match value.as_ref() {
-                Value::Null => return Err(Error::Connection("Cannot bind null parameter".into())),
+                Value::Null => 0,
                 Value::Integer(i) => size_of_val(i),
                 Value::Float(f) => size_of_val(f),
                 Value::Text(s) => s.as_bytes().len(),
@@ -73,7 +73,11 @@ impl Params for &[&dyn ToValue] {
             };
 
             // Save ind
-            let ind = Box::new(buf_len as dmdb_sys::slength);
+            let ind = if matches!(value.as_ref(), Value::Null) {
+                Box::new(dmdb_sys::DSQL_NULL_DATA as dmdb_sys::slength)
+            } else {
+                Box::new(buf_len as dmdb_sys::slength)
+            };
             let ind_ptr = (ind.as_ref() as *const dmdb_sys::slength).cast_mut();
             stmt.bind_ind_vec.push(ind);
 
