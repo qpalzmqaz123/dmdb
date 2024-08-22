@@ -81,9 +81,14 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         };
 
         // Get raw data
-        let Some(buf) = Self::recevie_data(rows, (index + 1) as dmdb_sys::udint2, ctype as dmdb_sys::sdint2)? else {
+        let Some(buf) = Self::recevie_data(
+            rows,
+            (index + 1) as dmdb_sys::udint2,
+            ctype as dmdb_sys::sdint2,
+        )?
+        else {
             // Value is null
-            return Ok(Value::Null)
+            return Ok(Value::Null);
         };
 
         // Parse column data to value
