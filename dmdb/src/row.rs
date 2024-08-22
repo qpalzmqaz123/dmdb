@@ -133,21 +133,23 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
         index: dmdb_sys::udint2,
         ctype: dmdb_sys::sdint2,
     ) -> Result<Option<Vec<u8>>> {
-        const BUF_LEN: usize = 4096;
+        const BUF_LEN: usize = 1024;
 
         let mut buf = vec![0u8; BUF_LEN];
         let mut out_buf = vec![];
 
         loop {
             let mut val_len: dmdb_sys::slength = 0;
+            let mut act_len: dmdb_sys::slength = 0;
             let rt = unsafe {
-                dmdb_sys::dpi_get_data(
+                dmdb_sys::dpi_get_data2(
                     rows.stmt.hstmt,
                     index,
                     ctype,
                     buf.as_mut_ptr() as dmdb_sys::dpointer,
                     BUF_LEN as dmdb_sys::slength,
                     &mut val_len,
+                    &mut act_len,
                 )
             };
 
@@ -156,7 +158,7 @@ impl<'conn, 'stmt, 'row> Row<'conn, 'stmt, 'row> {
                 return Ok(None);
             }
 
-            let tmp_data_size = std::cmp::min(val_len as usize, BUF_LEN);
+            let tmp_data_size = std::cmp::min(act_len as usize, BUF_LEN);
             let tmp_data = buf.get(0..tmp_data_size).ok_or(Error::Statement(format!(
                 "Get column data `{}` out of range",
                 index
