@@ -1,3 +1,5 @@
+use std::env;
+
 fn main() {
     // Compile port functions
     cc::Build::new().file("dm/port.c").compile("dmdpi-port");
@@ -24,7 +26,9 @@ fn main() {
         .header(format!("{base_dir}/include/DPItypes.h"))
         .generate()
         .unwrap();
-    bindings.write_to_file("src/bindings.rs").unwrap();
+    bindings
+        .write_to_file(format!("{}/bindings.rs", env::var("OUT_DIR").unwrap()))
+        .unwrap();
 
     // Link dpi
     #[cfg(feature = "bundled")]
